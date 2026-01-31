@@ -1,5 +1,5 @@
-/**@docs Category
-* Content here
+/**@docs Core
+* App internals
 **/
 
 
