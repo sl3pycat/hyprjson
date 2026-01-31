@@ -90,7 +90,7 @@ jobs:
             echo "" >> bundle.js
           done
           
-          npx -y terser bundle.js --compress --mangle -o hyprjson.min.js
+          npx -y terser bundle.js --compress --mangle -o hypr.min.js
           rm bundle.js
 
       - name: Commit and Push
@@ -98,6 +98,6 @@ jobs:
           git config user.name "HyprBot"
           git config user.email "bot@hyprjson.dev"
           rm -f DOCS.md
-          git add extra/docs.md extra/todo.md hyprjson.min.js
+          git add extra/docs.md extra/todo.md hypr.min.js
           git commit -m "build: clean docs layout and list todos" || exit 0
           git push
