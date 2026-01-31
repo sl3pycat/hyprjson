@@ -11,78 +11,62 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Parse and Sort Docs
         shell: python
         run: |
-          import re
-          import os
+          import re, os
           from datetime import datetime
-
           docs = {}
-          # Regex to grab @docs category and content
           pattern = re.compile(r"/\*\*@docs\s+([\w\d]+)(.*?)\*\*/", re.DOTALL)
-
-          # Deep scan all folders
           for root, dirs, files in os.walk('.'):
               if '.git' in root or 'node_modules' in root: continue 
               for file in files:
                   if file.endswith('.js') and not file.endswith('.min.js'):
                       file_path = os.path.join(root, file)
                       with open(file_path, 'r', encoding='utf-8') as f:
-                          content = f.read()
-                          matches = pattern.findall(content)
+                          matches = pattern.findall(f.read())
                           for category, text in matches:
                               category = category.strip()
-                              if category not in docs:
-                                  docs[category] = []
-                              
-                              # Clean up text for AI readability
-                              lines = text.strip().split('\n')
-                              clean_lines = [line.strip().lstrip('*').strip() for line in lines]
-                              final_text = "\n".join(filter(None, clean_lines))
-                              
-                              docs[category].append({
-                                  "path": file_path,
-                                  "body": final_text
-                              })
-
+                              if category not in docs: docs[category] = []
+                              clean_lines = [l.strip().lstrip('*').strip() for l in text.strip().split('\n')]
+                              docs[category].append({"path": file_path, "body": "\n".join(filter(None, clean_lines))})
           with open('DOCS.md', 'w', encoding='utf-8') as f:
-              f.write("# HyprJSON Docs\n\n")
+              f.write("# ⚡ HyprJSON API Documentation\n\n")
               f.write(f"*Last Sync: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
-              
-              if not docs:
-                  f.write("⚠️ **No documentation blocks found.** Check your `/**@docs` syntax.")
+              if not docs: f.write("⚠️ No docs found.")
               else:
-                  # AI-Friendly Table of Contents
-                  f.write("## Contents\n")
-                  for cat in sorted(docs.keys()):
-                      f.write(f"- [{cat}](#{cat.lower()})\n")
+                  f.write("## 📌 Navigation\n")
+                  for cat in sorted(docs.keys()): f.write(f"- [{cat}](#{cat.lower()})\n")
                   f.write("\n---\n")
-
-                  # Content Sections
                   for cat in sorted(docs.keys()):
                       f.write(f"## {cat}\n")
                       for entry in docs[cat]:
-                          f.write(f"**Source File:** `{entry['path']}`\n\n")
-                          f.write(f"{entry['body']}\n\n")
-                          f.write("---\n")
+                          f.write(f"**Source File:** `{entry['path']}`\n\n{entry['body']}\n\n---\n")
 
       - name: Compile and Minify
         run: |
-          # 1. Start with core/init.js (The Brain)
-          if [ -f "core/init.js" ]; then
+          # 1. Start with init.js and add a newline to prevent syntax collisions
+          if [ -f "core/init.js" ]; then 
             cat core/init.js > bundle.js
-          else
+            echo "" >> bundle.js
+          else 
             touch bundle.js
           fi
           
-          # 2. Append all other JS files recursively
-          find . -name "*.js" ! -path "./core/init.js" ! -name "bundle.js" ! -name "*.min.js" -exec cat {} + >> bundle.js
+          # 2. Append all other JS files with newlines
+          find . -name "*.js" ! -path "./core/init.js" ! -name "bundle.js" ! -name "*.min.js" | while read file; do
+            cat "$file" >> bundle.js
+            echo "" >> bundle.js
+          done
           
           # 3. Minify to hyprjson.min.js
-          npx terser bundle.js --compress --mangle -o hyprjson.min.js
+          npx -y terser bundle.js --compress --mangle -o hyprjson.min.js
           
-          # 4. Clean up
           rm bundle.js
 
       - name: Commit and Push
@@ -90,6 +74,5 @@ jobs:
           git config user.name "HyprBot"
           git config user.email "bot@hyprjson.dev"
           git add DOCS.md hyprjson.min.js
-          # Only commit if things actually changed to avoid loop errors
-          git commit -m "build: compile hyprjson.min.js & update docs" || exit 0
+          git commit -m "build: fix syntax collision and sync docs" || exit 0
           git push
