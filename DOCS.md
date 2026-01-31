@@ -1,8 +1,8 @@
-# ⚡ HyprJSON API Documentation
+# HyprJSON Docs
 
-*Last Sync: 2026-01-31 01:53:50*
+*Last Sync: 2026-01-31 01:57:50*
 
-## 📌 Navigation
+## Contents
 - [Core](#core)
 - [Node](#node)
 
