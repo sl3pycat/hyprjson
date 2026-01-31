@@ -1,3 +1,14 @@
+name: HyprJSON Docs
+on: [push]
+
+permissions:
+  contents: write
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Parse HyprJSON Docs
         shell: python
         run: |
@@ -5,32 +16,48 @@
           import os
 
           docs = {}
-          # Regex matches: /** @docs Category \n content **/
-          pattern = re.compile(r"/\*\*@docs\s+([\w\d]+)\n(.*?)\*\*/", re.DOTALL)
+          # Super chill regex: matches /** @docs Category ... **/
+          # [ \t]* handles spaces/tabs, (.*?) handles the content
+          pattern = re.compile(r"/\*\*@docs\s+([\w\d]+)(.*?)\*\*/", re.DOTALL)
 
-          # os.walk travels through 'core' and any other folders
           for root, dirs, files in os.walk('.'):
+              # Skip hidden folders like .git
+              if '.git' in root: continue 
+              
               for file in files:
                   if file.endswith('.js'):
-                      with open(os.path.join(root, file), 'r') as f:
+                      file_path = os.path.join(root, file)
+                      with open(file_path, 'r', encoding='utf-8') as f:
                           content = f.read()
                           matches = pattern.findall(content)
                           for category, text in matches:
+                              category = category.strip()
                               if category not in docs:
                                   docs[category] = []
-                              # Cleans the text and removes the '*' from the start of lines
-                              clean_lines = []
-                              for line in text.split('\n'):
-                                  l = line.strip().lstrip('*').strip()
-                                  if l: clean_lines.append(l)
-                              docs[category].append("\n".join(clean_lines))
+                              
+                              # Clean up the body text
+                              lines = text.strip().split('\n')
+                              clean_lines = [line.strip().lstrip('*').strip() for line in lines]
+                              final_text = "\n".join(filter(None, clean_lines))
+                              
+                              # Add info about where it came from
+                              docs[category].append(f"> **Source:** `{file_path}`\n\n{final_text}")
 
-          with open('DOCS.md', 'w') as f:
-              f.write("# HyprJSON API\n\n")
+          with open('DOCS.md', 'w', encoding='utf-8') as f:
+              f.write("# ⚡ HyprJSON Documentation\n\n")
               if not docs:
-                  f.write("_No docs found yet. Check your comment syntax!_")
-              for cat in sorted(docs.keys()):
-                  f.write(f"## {cat}\n")
-                  for entry in docs[cat]:
-                      f.write(f"{entry}\n\n")
-                  f.write("---\n")
+                  f.write("⚠️ **No documentation blocks found.**\n\nMake sure your comments look like this:\n```javascript\n/**@docs Category\n* Content here\n**/\n```")
+              else:
+                  for cat in sorted(docs.keys()):
+                      f.write(f"## {cat}\n")
+                      for entry in docs[cat]:
+                          f.write(f"{entry}\n\n")
+                      f.write("---\n")
+
+      - name: Commit changes
+        run: |
+          git config user.name "HyprBot"
+          git config user.email "bot@hyprjson.dev"
+          git add DOCS.md
+          git commit -m "docs: sync hyprjson api" || exit 0
+          git push
