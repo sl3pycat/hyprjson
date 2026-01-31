@@ -47,14 +47,14 @@ jobs:
                               })
 
           with open('DOCS.md', 'w', encoding='utf-8') as f:
-              f.write("# ⚡ HyprJSON API Documentation\n\n")
+              f.write("# HyprJSON Docs\n\n")
               f.write(f"*Last Sync: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
               
               if not docs:
                   f.write("⚠️ **No documentation blocks found.** Check your `/**@docs` syntax.")
               else:
                   # AI-Friendly Table of Contents
-                  f.write("## 📌 Navigation\n")
+                  f.write("## Contents\n")
                   for cat in sorted(docs.keys()):
                       f.write(f"- [{cat}](#{cat.lower()})\n")
                   f.write("\n---\n")
