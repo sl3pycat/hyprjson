@@ -1,7 +1,6 @@
-/**@docs Core
- * First setup
- * yay
- */
+/**@docs Category
+* Content here
+**/
 
 
  console.log("hyprjson")
