@@ -25,3 +25,5 @@ if(hypr.manifest.import)hypr.manifest.import.split(" ").filter(entry=>entry).for
   script.async = false
   document.head.appendChild(script)
 })
+
+//TODO: at manifest add title support

@@ -16,27 +16,48 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Parse and Sort Docs
+      - name: Parse Docs and Todos
         shell: python
         run: |
           import re, os
           from datetime import datetime
+          
           docs = {}
-          pattern = re.compile(r"/\*\*@docs\s+([\w\d]+)(.*?)\*\*/", re.DOTALL)
+          todos = []
+          
+          # Regex for @docs (block) and // TODO: (line)
+          doc_pattern = re.compile(r"/\*\*@docs\s+([\w\d]+)(.*?)\*\*/", re.DOTALL)
+          # Grabs everything after // TODO: until the end of the line
+          todo_pattern = re.compile(r"//\s*TODO\s*:\s*(.*)", re.IGNORECASE)
+
           for root, dirs, files in os.walk('.'):
-              if '.git' in root or 'node_modules' in root: continue 
+              if '.git' in root or 'node_modules' in root or 'extra' in root: continue 
               for file in files:
                   if file.endswith('.js') and not file.endswith('.min.js'):
                       file_path = os.path.join(root, file)
                       with open(file_path, 'r', encoding='utf-8') as f:
-                          matches = pattern.findall(f.read())
-                          for category, text in matches:
+                          lines = f.readlines()
+                          content = "".join(lines)
+                          
+                          # Extract Docs
+                          doc_matches = doc_pattern.findall(content)
+                          for category, text in doc_matches:
                               category = category.strip()
                               if category not in docs: docs[category] = []
                               clean_lines = [l.strip().lstrip('*').strip() for l in text.strip().split('\n')]
                               docs[category].append({"path": file_path, "body": "\n".join(filter(None, clean_lines))})
-          with open('DOCS.md', 'w', encoding='utf-8') as f:
-              f.write("# ⚡ HyprJSON API Documentation\n\n")
+                          
+                          # Extract Todos line by line
+                          for line in lines:
+                              todo_match = todo_pattern.search(line)
+                              if todo_match:
+                                  todos.append(f"- [ ] {todo_match.group(1).strip()} (in `{file_path}`)")
+
+          os.makedirs('extra', exist_ok=True)
+
+          # Write docs.md
+          with open('extra/docs.md', 'w', encoding='utf-8') as f:
+              f.write("# ⚡ HyprJSON API\n\n")
               f.write(f"*Last Sync: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
               if not docs: f.write("⚠️ No docs found.")
               else:
@@ -46,11 +67,17 @@ jobs:
                   for cat in sorted(docs.keys()):
                       f.write(f"## {cat}\n")
                       for entry in docs[cat]:
-                          f.write(f"**Source File:** `{entry['path']}`\n\n{entry['body']}\n\n---\n")
+                          f.write(f"**Source:** `{entry['path']}`\n\n{entry['body']}\n\n---\n")
+
+          # Write todo.md
+          with open('extra/todo.md', 'w', encoding='utf-8') as f:
+              f.write("# 📅 HyprJSON To-Do List\n\n")
+              if not todos: f.write("✅ No tasks found. Stay chill.")
+              else:
+                  for item in todos: f.write(f"{item}\n")
 
       - name: Compile and Minify
         run: |
-          # 1. Start with init.js and add a newline to prevent syntax collisions
           if [ -f "core/init.js" ]; then 
             cat core/init.js > bundle.js
             echo "" >> bundle.js
@@ -58,21 +85,19 @@ jobs:
             touch bundle.js
           fi
           
-          # 2. Append all other JS files with newlines
-          find . -name "*.js" ! -path "./core/init.js" ! -name "bundle.js" ! -name "*.min.js" | while read file; do
+          find . -name "*.js" ! -path "./core/init.js" ! -name "bundle.js" ! -name "*.min.js" ! -path "./extra/*" | while read file; do
             cat "$file" >> bundle.js
             echo "" >> bundle.js
           done
           
-          # 3. Minify to hyprjson.min.js
           npx -y terser bundle.js --compress --mangle -o hyprjson.min.js
-          
           rm bundle.js
 
       - name: Commit and Push
         run: |
           git config user.name "HyprBot"
           git config user.email "bot@hyprjson.dev"
-          git add DOCS.md hyprjson.min.js
-          git commit -m "build: fix syntax collision and sync docs" || exit 0
+          rm -f DOCS.md
+          git add extra/docs.md extra/todo.md hyprjson.min.js
+          git commit -m "build: sync docs and todos to /extra" || exit 0
           git push
