@@ -1,8 +1,8 @@
 # ⚡ HyprJSON Documentation
 
-## Category
+## Core
 > **Source:** `./core/init.js`
 
-Content here
+App internals
 
 ---
