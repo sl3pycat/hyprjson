@@ -1,0 +1,50 @@
+name: HyprJSON Docs
+on: [push]
+
+permissions:
+  contents: write
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse HyprJSON Docs
+        shell: python
+        run: |
+          import re
+          import os
+
+          # Find all .js files
+          docs = {}
+          # Regex to grab the category and the content inside the block
+          pattern = re.compile(r"/\*\*@docs\s+(\w+)\n(.*?)\*\*/", re.DOTALL)
+
+          for file in os.listdir('.'):
+              if file.endswith('.js'):
+                  with open(file, 'r') as f:
+                      content = f.read()
+                      matches = pattern.findall(content)
+                      for category, text in matches:
+                          if category not in docs:
+                              docs[category] = []
+                          # Clean up leading asterisks if they exist
+                          clean_text = "\n".join([line.strip().lstrip('*').strip() for line in text.split('\n')])
+                          docs[category].append(clean_text)
+
+          # Write to DOCS.md
+          with open('DOCS.md', 'w') as f:
+              f.write("# HyprJSON API\n\n")
+              for cat in sorted(docs.keys()):
+                  f.write(f"## {cat}\n")
+                  for entry in docs[cat]:
+                      f.write(f"{entry}\n\n")
+                  f.write("---\n")
+
+      - name: Commit changes
+        run: |
+          git config user.name "HyprBot"
+          git config user.email "bot@hyprjson.dev"
+          git add DOCS.md
+          git commit -m "docs: auto-sort hyprjson" || exit 0
+          git push
