@@ -3,7 +3,7 @@
 **/
  console.log()
  
- /**@docs UI
+ /**@docs Node
 * @name: PinkButton
 * @type: Component
 * @params: { text: "string", onClick: "function" }
