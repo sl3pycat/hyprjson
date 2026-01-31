@@ -1,10 +1,8 @@
 # ⚡ HyprJSON Documentation
 
-⚠️ **No documentation blocks found.**
+## Category
+> **Source:** `./core/init.js`
 
-Make sure your comments look like this:
-```javascript
-/**@docs Category
-* Content here
-**/
-```
+Content here
+
+---
