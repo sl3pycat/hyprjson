@@ -1,11 +1,10 @@
 # ⚡ HyprJSON API Documentation
 
-*Last Sync: 2026-01-31 01:52:12*
+*Last Sync: 2026-01-31 01:53:50*
 
 ## 📌 Navigation
 - [Core](#core)
 - [Node](#node)
-- [UI](#ui)
 
 ---
 ## Core
@@ -20,7 +19,6 @@ App internals
 Some misc code
 
 ---
-## UI
 **Source File:** `./node/misc.js`
 
 @name: PinkButton
