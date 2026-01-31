@@ -2,4 +2,6 @@
  * First setup
  * yay
  */
+
+
  console.log("hyprjson")
