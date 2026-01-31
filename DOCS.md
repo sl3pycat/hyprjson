@@ -6,3 +6,9 @@
 App internals
 
 ---
+## Node
+> **Source:** `./node/misc.js`
+
+Some misc code
+
+---
