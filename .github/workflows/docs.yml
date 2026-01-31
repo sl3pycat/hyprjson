@@ -1,29 +1,28 @@
-name: HyprJSON Docs
+name: HyprJSON Build & Docs
 on: [push]
 
 permissions:
   contents: write
 
 jobs:
-  generate-docs:
+  build-and-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Parse HyprJSON Docs
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Parse and Sort Docs
         shell: python
         run: |
           import re
           import os
 
           docs = {}
-          # Super chill regex: matches /** @docs Category ... **/
-          # [ \t]* handles spaces/tabs, (.*?) handles the content
+          # Regex to grab @docs category and content
           pattern = re.compile(r"/\*\*@docs\s+([\w\d]+)(.*?)\*\*/", re.DOTALL)
 
           for root, dirs, files in os.walk('.'):
-              # Skip hidden folders like .git
               if '.git' in root: continue 
-              
               for file in files:
                   if file.endswith('.js'):
                       file_path = os.path.join(root, file)
@@ -34,30 +33,39 @@ jobs:
                               category = category.strip()
                               if category not in docs:
                                   docs[category] = []
-                              
-                              # Clean up the body text
                               lines = text.strip().split('\n')
                               clean_lines = [line.strip().lstrip('*').strip() for line in lines]
                               final_text = "\n".join(filter(None, clean_lines))
-                              
-                              # Add info about where it came from
                               docs[category].append(f"> **Source:** `{file_path}`\n\n{final_text}")
 
           with open('DOCS.md', 'w', encoding='utf-8') as f:
               f.write("# ⚡ HyprJSON Documentation\n\n")
               if not docs:
-                  f.write("⚠️ **No documentation blocks found.**\n\nMake sure your comments look like this:\n```javascript\n/**@docs Category\n* Content here\n**/\n```")
-              else:
-                  for cat in sorted(docs.keys()):
-                      f.write(f"## {cat}\n")
-                      for entry in docs[cat]:
-                          f.write(f"{entry}\n\n")
-                      f.write("---\n")
+                  f.write("⚠️ No docs found.")
+              for cat in sorted(docs.keys()):
+                  f.write(f"## {cat}\n")
+                  for entry in docs[cat]:
+                      f.write(f"{entry}\n\n")
+                  f.write("---\n")
 
-      - name: Commit changes
+      - name: Compile and Minify
+        run: |
+          # Ensure core/init.js is at the very top
+          cat core/init.js > bundle.js
+          
+          # Find and append all other .js files except init.js and the bundle itself
+          find . -name "*.js" ! -path "./core/init.js" ! -name "bundle.js" -exec cat {} + >> bundle.js
+          
+          # Use npx to run terser without needing a local node_modules
+          npx terser bundle.js --compress --mangle -o hyprjson.min.js
+          
+          # Cleanup temp file
+          rm bundle.js
+
+      - name: Commit and Push
         run: |
           git config user.name "HyprBot"
           git config user.email "bot@hyprjson.dev"
-          git add DOCS.md
-          git commit -m "docs: sync hyprjson api" || exit 0
+          git add DOCS.md hyprjson.min.js
+          git commit -m "build: compile hyprjson.min.js and sync docs" || exit 0
           git push
