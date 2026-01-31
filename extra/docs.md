@@ -1,6 +1,6 @@
 # ⚡ HyprJSON API
 
-*Last Sync: 2026-01-31 03:04:14*
+*Last Sync: 2026-01-31 03:11:34*
 
 ## 📌 Navigation
 - [Core](#core)
