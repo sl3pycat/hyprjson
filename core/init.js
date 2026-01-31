@@ -2,5 +2,3 @@
 * App internals
 **/
 
-
- console.log("hyprjson")
