@@ -1,3 +1,3 @@
 # 📅 HyprJSON To-Do List
 
-- setup node stuff (in `./node/misc.js`)
+- test if entry script should be innerText or innerHTML, which one preserves more data. (in `./core/init.js`)
